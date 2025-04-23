@@ -1,0 +1,63 @@
+# Python & Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Django specific
+backend/*.log
+backend/local_settings.py
+backend/db.sqlite3
+backend/data.json
+backend/db.sqlite3-journal
+backend/media/
+backend/staticfiles/
+backend/.env
+
+# Node & React
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env
+frontend/.gitignore
+frontend/package-lock.json
+frontend/.env.*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.vite/
+frontend/coverage/
+
+# Development environment
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+
+# Build directories
+build/
+dist/
+
+# Coverage reports
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Database
+*.sqlite3
+
+# Environment files
+.env*
+!.env.example

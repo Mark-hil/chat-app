@@ -1,0 +1,195 @@
+import React, { useState, useEffect } from 'react';
+import { fetchWithCsrf } from '../utils/api';
+import { API_BASE_URL, endpoints } from '../config';
+import ChatRoom from './ChatRoom';
+
+function RoomList() {
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomDescription, setNewRoomDescription] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const fetchRooms = async () => {
+    try {
+      const data = await fetchWithCsrf(endpoints.rooms);
+      setRooms(data);
+      setError('');
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      setError('Failed to load chat rooms');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  const handleCreateRoom = async (e) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
+
+    try {
+      const response = await fetchWithCsrf(endpoints.rooms, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newRoomName.trim(),
+          description: newRoomDescription.trim()
+        })
+      });
+
+      setRooms([...rooms, response]);
+      setNewRoomName('');
+      setNewRoomDescription('');
+      setShowCreateForm(false);
+      setError('');
+    } catch (error) {
+      console.error('Error creating room:', error);
+      setError('Failed to create room');
+    }
+  };
+
+  return (
+    <div className="flex h-full bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-80 flex flex-col bg-white shadow-lg">
+        <div className="fixed w-80 z-40 top-16 bg-white">
+          <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-blue-700">
+            <h1 className="text-2xl font-bold text-white mb-2">Chat Rooms</h1>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="w-full py-2 px-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              <span>New Room</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-24 flex flex-col h-[calc(100vh-4rem)]">
+          {showCreateForm && (
+            <form onSubmit={handleCreateRoom} className="p-4 border-b bg-gray-50">
+              <input
+                type="text"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                placeholder="Room name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+                required
+              />
+              <textarea
+                value={newRoomDescription}
+                onChange={(e) => setNewRoomDescription(e.target.value)}
+                placeholder="Room description (optional)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2 resize-none h-20"
+              />
+              <div className="flex space-x-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setNewRoomName('');
+                    setNewRoomDescription('');
+                  }}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {error && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            ) : rooms.length === 0 ? (
+              <div className="text-center p-8 text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 110 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                </svg>
+                <p>No chat rooms available</p>
+                <p className="text-sm mt-2">Create one to get started!</p>
+              </div>
+            ) : (
+              <div className="space-y-1 p-2">
+                {rooms.map((room) => (
+                  <button
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room)}
+                    className={`w-full p-3 rounded-lg text-left transition-all duration-200 hover:bg-gray-100 ${
+                      selectedRoom?.id === room.id
+                        ? 'bg-blue-50 text-blue-700 font-medium shadow-sm'
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    <div className="font-medium">{room.name}</div>
+                    {room.description && (
+                      <div className="text-sm text-gray-500 truncate mt-1">
+                        {room.description}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t bg-gray-50">
+            <button
+              onClick={() => {
+                localStorage.removeItem('username');
+                window.location.reload();
+              }}
+              className="w-full py-2 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        {selectedRoom ? (
+          <ChatRoom 
+            room={selectedRoom} 
+            user={{ username: localStorage.getItem('username') }} 
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 className="text-xl font-medium mb-2">Welcome to Chat App</h3>
+            <p>Select a room to start chatting</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default RoomList;
