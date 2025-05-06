@@ -54,7 +54,7 @@ function RoomList() {
   };
 
   return (
-    <div className="flex h-full bg-gray-100">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-80 flex flex-col bg-white shadow-lg">
         <div className="fixed w-80 z-40 top-16 bg-white">
@@ -72,52 +72,14 @@ function RoomList() {
           </div>
         </div>
 
-        <div className="mt-24 flex flex-col h-[calc(100vh-4rem)]">
-          {showCreateForm && (
-            <form onSubmit={handleCreateRoom} className="p-4 border-b bg-gray-50">
-              <input
-                type="text"
-                value={newRoomName}
-                onChange={(e) => setNewRoomName(e.target.value)}
-                placeholder="Room name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
-                required
-              />
-              <textarea
-                value={newRoomDescription}
-                onChange={(e) => setNewRoomDescription(e.target.value)}
-                placeholder="Room description (optional)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2 resize-none h-20"
-              />
-              <div className="flex space-x-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-200"
-                >
-                  Create
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setNewRoomName('');
-                    setNewRoomDescription('');
-                  }}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
-
+        <div className="mt-24">
           {error && (
             <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm">
               {error}
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="overflow-y-auto h-[calc(100vh-11rem)]">
             {isLoading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -125,10 +87,9 @@ function RoomList() {
             ) : rooms.length === 0 ? (
               <div className="text-center p-8 text-gray-500">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 110 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                 </svg>
-                <p>No chat rooms available</p>
-                <p className="text-sm mt-2">Create one to get started!</p>
+                <p>No rooms available</p>
               </div>
             ) : (
               <div className="space-y-1 p-2">
@@ -142,48 +103,86 @@ function RoomList() {
                         : 'text-gray-700'
                     }`}
                   >
-                    <div className="font-medium">{room.name}</div>
-                    {room.description && (
-                      <div className="text-sm text-gray-500 truncate mt-1">
-                        {room.description}
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <div className="font-medium">{room.name}</div>
+                        {room.description && (
+                          <div className="text-xs text-gray-500 truncate">
+                            {room.description}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          <div className="p-4 border-t bg-gray-50">
-            <button
-              onClick={() => {
-                localStorage.removeItem('username');
-                window.location.reload();
-              }}
-              className="w-full py-2 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center space-x-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span>Logout</span>
-            </button>
-          </div>
         </div>
+
+        {showCreateForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4">Create New Room</h2>
+              <form onSubmit={handleCreateRoom}>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="roomName" className="block text-sm font-medium text-gray-700">
+                      Room Name
+                    </label>
+                    <input
+                      type="text"
+                      id="roomName"
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="roomDescription" className="block text-sm font-medium text-gray-700">
+                      Description (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="roomDescription"
+                      value={newRoomDescription}
+                      onChange={(e) => setNewRoomDescription(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateForm(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md"
+                  >
+                    Create Room
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      {/* Chat Room Content */}
+      <div className="flex-1">
         {selectedRoom ? (
-          <ChatRoom 
-            room={selectedRoom} 
-            user={{ username: localStorage.getItem('username') }} 
-          />
+          <ChatRoom room={selectedRoom} user={{ username: localStorage.getItem('username') }} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 bg-gray-50">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
             </svg>
-            <h3 className="text-xl font-medium mb-2">Welcome to Chat App</h3>
+            <h3 className="text-xl font-medium mb-2">Chat Rooms</h3>
             <p>Select a room to start chatting</p>
           </div>
         )}

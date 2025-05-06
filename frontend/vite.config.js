@@ -16,5 +16,21 @@ export default defineConfig({
         ws: true,
       },
     },
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRFToken'],
+      credentials: true,
+    },
   },
-})
+  // Disable caching during development
+  optimizeDeps: {
+    force: true
+  },
+  clearScreen: false,
+  build: {
+    // Ensure fresh builds
+    write: true,
+    sourcemap: true,
+  }
+});

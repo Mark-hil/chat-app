@@ -16,23 +16,28 @@ RUN npm ci
 # Copy project files
 COPY . .
 
-# Build the app
-RUN npm run build
+EXPOSE 3000
 
-# Production stage
-FROM nginx:alpine
+# Start with host 0.0.0.0 to allow external access
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# # Build the app
+# RUN npm run build
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# # Production stage
+# FROM nginx:alpine
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+# # Install curl for health checks
+# RUN apk add --no-cache curl
 
-# Expose port
-EXPOSE 80
+# # Copy nginx configuration
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Start nginx with debug mode
-CMD ["nginx", "-g", "daemon off;"]
+# # Copy built assets from builder stage
+# COPY --from=builder /app/dist /usr/share/nginx/html
+
+# # Expose port
+# EXPOSE 80
+
+# # Start nginx with debug mode
+# CMD ["nginx", "-g", "daemon off;"]

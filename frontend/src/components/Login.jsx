@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { fetchWithCsrf } from '../utils/api';
 import { endpoints } from '../config';
 
-function Login({ onLoginSuccess, onRegisterClick }) {
+function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,9 +36,13 @@ function Login({ onLoginSuccess, onRegisterClick }) {
         body: JSON.stringify({ username, password }),
       });
       
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
-      onLoginSuccess({ username: data.username });
+      if (data && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        onLoginSuccess({ username: data.username, token: data.token });
+      } else {
+        throw new Error('No token received from server');
+      }
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || 'Network error. Please try again.');
@@ -47,8 +52,8 @@ function Login({ onLoginSuccess, onRegisterClick }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
+    <div className="bg-gray-100 flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8 rounded">
+      <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-lg">
         <div className="text-center">
           <ChatBubbleLeftRightIcon className="mx-auto h-12 w-12 text-primary-600" />
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
@@ -103,24 +108,23 @@ function Login({ onLoginSuccess, onRegisterClick }) {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-4">
             <button
               type="submit"
               disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
 
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => onRegisterClick()}
-              className="text-primary-600 hover:text-primary-500 font-medium"
-            >
-              Create an account
-            </button>
+            <div className="text-center">
+              <Link
+                to="/register"
+                className="text-blue-600 hover:text-blue-500 font-medium"
+              >
+                Don't have an account? Create one
+              </Link>
+            </div>
           </div>
         </form>
       </div>

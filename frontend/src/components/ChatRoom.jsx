@@ -10,6 +10,7 @@ const ChatRoom = ({ user, room }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const currentUser = localStorage.getItem('username');
 
   const scrollToBottom = (smooth = true) => {
     messagesEndRef.current?.scrollIntoView({ 
@@ -17,6 +18,8 @@ const ChatRoom = ({ user, room }) => {
       block: 'end'
     });
   };
+
+
 
   const fetchMessages = async () => {
     if (!room) return;
@@ -28,7 +31,6 @@ const ChatRoom = ({ user, room }) => {
         new Date(a.timestamp) - new Date(b.timestamp)
       );
       setMessages(sortedMessages);
-      scrollToBottom();
     } catch (error) {
       console.error('Error fetching messages:', error);
       setError(error.message || 'Failed to fetch messages. Please try again.');
@@ -82,9 +84,11 @@ const ChatRoom = ({ user, room }) => {
             new Date(a.timestamp) - new Date(b.timestamp)
           );
 
+          // Schedule scroll after state update
+          setTimeout(() => scrollToBottom(), 100);
+
           return updatedMessages;
         });
-        scrollToBottom();
       } catch (error) {
         console.error('Error processing message:', error);
       }
@@ -114,22 +118,77 @@ const ChatRoom = ({ user, room }) => {
       return;
     }
 
-    setIsLoading(true);
-    if (room) {
-      fetchMessages();
-      const ws = connectWebSocket();
-      if (ws) setSocket(ws);
+    const ws = new WebSocket(`${WS_BASE_URL}${endpoints.websocket.room(room.id)}`);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setSocket(ws);
+      setError('');
+    };
 
-      // Scroll to bottom without animation when loading initial messages
-      scrollToBottom(false);
-
-      return () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close();
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          setError(data.error);
+          return;
         }
-      };
-    }
-  }, [room, user]);
+        if (data.type === 'connection_established') {
+          console.log(data.message);
+          setError('');
+          return;
+        }
+        
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: data.message,
+          timestamp: data.timestamp || new Date().toISOString(),
+          user: {
+            username: data.user_id
+          }
+        }]);
+        scrollToBottom();
+      } catch (error) {
+        console.error('Error processing message:', error);
+        setError('Error processing message');
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setError('Connection error');
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setSocket(null);
+    };
+
+    const fetchMessages = async () => {
+      try {
+        const data = await fetchWithCsrf(endpoints.messages(room.id));
+        // Sort messages by timestamp in ascending order (oldest first)
+        const sortedMessages = data.sort((a, b) => 
+          new Date(a.timestamp) - new Date(b.timestamp)
+        );
+        setMessages(sortedMessages);
+        setError('');
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        setError('Failed to load messages');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMessages();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [room?.id, user?.username]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -176,51 +235,57 @@ const ChatRoom = ({ user, room }) => {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <div className="fixed top-16 left-80 right-0 bg-white border-b px-6 py-4 shadow-sm z-40">
-        <h2 className="text-xl font-semibold text-gray-800">{room.name}</h2>
-        {room.description && (
-          <p className="text-sm text-gray-600 mt-1">{room.description}</p>
-        )}
+      {/* Chat Header */}
+      <div className="bg-white border-b px-6 py-4 shadow-sm">
+        <div className="flex items-center">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {room?.name}
+          </h2>
+          {room?.description && (
+            <p className="text-sm text-gray-500 ml-4">
+              {room.description}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-24 mt-16" style={{ scrollbarWidth: 'thin' }}>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex animate-fade-in ${
-                message.user.username === user?.username ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <div className={`flex flex-col ${
-                message.user.username === user?.username ? 'items-end' : 'items-start'
-              }`}>
-                <span className="text-xs text-gray-500 mb-1 px-2">
-                  {message.user.username}
-                </span>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+        <div className="p-6 pb-20">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex justify-center items-center h-full text-gray-500">
+              No messages yet. Start the conversation!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => (
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                    message.user.username === user?.username
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-none shadow-md'
-                      : 'bg-white text-gray-800 rounded-bl-none shadow-md'
-                  }`}
+                  key={message.id}
+                  className={`flex animate-fade-in ${message.user.username === currentUser ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                  <div className="text-xs opacity-75 mt-1">
-                    {moment(message.timestamp).fromNow()}
+                  <div className={`flex flex-col ${message.user.username === currentUser ? 'items-end' : 'items-start'}`}>
+                    <span className="text-xs text-gray-500 mb-1 px-2">
+                      {message.user.username}
+                    </span>
+                    <div
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${message.user.username === currentUser ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'}`}
+                    >
+                      <p>{message.content}</p>
+                      <p className={`text-xs mt-1 ${message.user.username === currentUser ? 'text-blue-100' : 'text-gray-500'}`}>
+                        {moment(message.timestamp).format('LT')}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {error && (
@@ -234,6 +299,7 @@ const ChatRoom = ({ user, room }) => {
         </div>
       )}
 
+      {/* Message Input */}
       <form onSubmit={handleSubmit} className="fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t">
         <div className="max-w-screen-xl mx-auto flex items-center gap-2">
           <div className="flex-1 relative">
@@ -241,7 +307,7 @@ const ChatRoom = ({ user, room }) => {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
+              placeholder={`Message ${room?.name}...`}
               className="w-full px-6 py-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:border-gray-300 text-gray-700 transition-colors duration-200"
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -253,7 +319,7 @@ const ChatRoom = ({ user, room }) => {
           </div>
           <button
             type="submit"
-            disabled={!newMessage.trim() || !socket || !user?.username}
+            disabled={!newMessage.trim() || !socket || socket.readyState !== WebSocket.OPEN}
             className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 w-24 flex items-center justify-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

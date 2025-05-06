@@ -10,17 +10,29 @@ export const fetchWithCsrf = async (endpoint, options = {}) => {
   const csrfToken = getCsrfToken();
   const token = localStorage.getItem('token');
   
-  const defaultOptions = {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken,
-      ...(token ? { 'Authorization': `Token ${token}` } : {}),
-    },
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   };
 
+  if (token) {
+    headers['Authorization'] = `Token ${token}`;
+  }
+
+  if (csrfToken) {
+    headers['X-CSRFToken'] = csrfToken;
+  }
+
+  const defaultOptions = {
+    credentials: 'include',
+    headers,
+    mode: 'cors',
+  };
+
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(url, {
       ...defaultOptions,
       ...options,
       headers: {
@@ -34,10 +46,10 @@ export const fetchWithCsrf = async (endpoint, options = {}) => {
         // Clear token and redirect to login if unauthorized
         localStorage.removeItem('token');
         localStorage.removeItem('username');
-        window.location.href = '/login';
+        window.location.href = '/';
         return;
       }
-      const error = await response.json();
+      const error = await response.json().catch(() => ({ detail: 'Network error' }));
       throw new Error(error.detail || 'Something went wrong');
     }
 

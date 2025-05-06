@@ -12,7 +12,7 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   return children;
@@ -33,8 +33,9 @@ function AuthLayout({ children, title, subtitle }) {
   );
 }
 
-function LoginWrapper({ onRegisterClick }) {
+function LoginWrapper() {
   const navigate = useNavigate();
+  const location = useLocation();
   
   const handleLoginSuccess = () => {
     navigate('/rooms');
@@ -44,10 +45,11 @@ function LoginWrapper({ onRegisterClick }) {
     <AuthLayout 
       title="Welcome back!"
       subtitle="Sign in to continue to Chat App"
+      key={location.pathname}
     >
       <Login 
         onLoginSuccess={handleLoginSuccess}
-        onRegisterClick={onRegisterClick}
+        key="login-form"
       />
     </AuthLayout>
   );
@@ -57,7 +59,7 @@ function RegisterWrapper() {
   const navigate = useNavigate();
   
   const handleRegisterSuccess = () => {
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -71,29 +73,67 @@ function RegisterWrapper() {
 }
 
 function App() {
-  const [showRegister, setShowRegister] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Clear any stale cache on app load
+      localStorage.removeItem('vite-app-cache');
+      setIsLoading(false);
+    };
+    checkAuth();
+
+    // Clear cache when component mounts
+    if (import.meta.hot) {
+      import.meta.hot.dispose(() => {
+        localStorage.removeItem('vite-app-cache');
+      });
+    }
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={
-          <LoginWrapper onRegisterClick={() => setShowRegister(true)} />
-        } />
+        <Route path="/" element={<LoginWrapper />} />
         <Route path="/register" element={<RegisterWrapper />} />
-        <Route path="/*" element={
-          <ProtectedRoute>
-            <div className="h-screen overflow-hidden">
-              <ChatHeader />
-              <div className="flex-1 bg-gray-50 pt-16">
-                <Routes>
-                  <Route path="/rooms" element={<RoomList />} />
-                  <Route path="/direct-messages" element={<UserList />} />
-                  <Route path="/" element={<Navigate to="/rooms" replace />} />
-                </Routes>
+        <Route
+          path="/rooms"
+          element={
+            <ProtectedRoute>
+              <div className="h-screen overflow-hidden">
+                <ChatHeader />
+                <div className="flex-1 bg-gray-50 pt-16">
+                  <RoomList />
+                </div>
               </div>
-            </div>
-          </ProtectedRoute>
-        } />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/direct-messages"
+          element={
+            <ProtectedRoute>
+              <div className="h-screen overflow-hidden">
+                <ChatHeader />
+                <div className="flex-1 bg-gray-50 pt-16">
+                  <UserList />
+                </div>
+              </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
